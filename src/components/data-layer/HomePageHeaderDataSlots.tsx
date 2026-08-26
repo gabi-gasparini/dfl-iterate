@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Settings, Trophy } from 'lucide-react';
-import { Button } from '@devfellowship/components';
+import { useState } from "react";
+import { Settings, Trophy } from "lucide-react";
+import { Button } from "@devfellowship/components";
+import { PreviewSectionLabel } from '@/components/data-layer/PreviewSectionLabel';
 import {
   Drawer,
   DrawerClose,
@@ -8,7 +9,7 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from '@/components/ui/drawer';
+} from "@/components/ui/drawer";
 import {
   UserProfileCard,
   UserStatsBadge,
@@ -16,34 +17,58 @@ import {
   AchievementsList,
   NotificationBellIcon,
   NotificationList,
-} from '@/components/data-layer';
+} from "@/components/data-layer";
 import {
   previewAchievements,
   previewNotifications,
   previewUserProfile,
   previewUserStats,
-} from '@/components/data-layer/preview.mock';
-import { useGetUserPreferences } from '@/hooks';
-/**
- * Preview + slots T1, T2, T4, T6 no header da `HomePage`.
- *
- * Fellow T1: substituir mock por `useGetUserProfile()` + estados.
- * Fellow T4: substituir mock por `useGetUserStats()`.
- * Fellow T6: drawer 🏆 → `useGetUserAchievements()`.
- * Fellow T2: drawer ⚙️ → `useGetUserPreferences()`.
- * Fellow T10: drawer 🔔 → `useGetNotifications()`.
- */
+} from "@/components/data-layer/preview.mock";
+import { useGetUserPreferences, useUpdateUserPreferences } from "@/hooks";
+
 export function HomePageHeaderDataSlots() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [achievementsOpen, setAchievementsOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [pendingField, setPendingField] = useState<"theme" | "sound" | null>(
+    null,
+  );
+
   const {
     data: preferences,
     isPending: isPreferencesPending,
     isError: isPreferencesError,
+    isFetching: isPreferencesFetching,
     refetch: refetchPreferences,
   } = useGetUserPreferences();
 
+  const {
+    mutate: updatePreferences,
+    isPending: isUpdatingPreferences,
+    isError: isUpdateError,
+  } = useUpdateUserPreferences();
+
+  const isSavingPreferences = isUpdatingPreferences || isPreferencesFetching;
+  const isSavingTheme = pendingField === "theme" && isSavingPreferences;
+  const isSavingSound = pendingField === "sound" && isSavingPreferences;
+
+  const handleToggleTheme = () => {
+    if (!preferences) return;
+    setPendingField("theme");
+    updatePreferences({
+      ...preferences,
+      theme: preferences.theme === "dark" ? "light" : "dark",
+    });
+  };
+
+  const handleToggleSound = () => {
+    if (!preferences) return;
+    setPendingField("sound");
+    updatePreferences({
+      ...preferences,
+      soundEffectsEnabled: !preferences.soundEffectsEnabled,
+    });
+  };
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
@@ -89,7 +114,9 @@ export function HomePageHeaderDataSlots() {
             className="h-9 w-9 shrink-0"
             aria-label="Notificações"
           >
-            <NotificationBellIcon unreadCount={previewNotifications.unreadCount} />
+            <NotificationBellIcon
+              unreadCount={previewNotifications.unreadCount}
+            />
           </Button>
         </DrawerTrigger>
         <DrawerContent className="max-h-[85vh]">
@@ -108,7 +135,7 @@ export function HomePageHeaderDataSlots() {
         </DrawerContent>
       </Drawer>
 
-    {/* SLOT T2 */}
+      {/* SLOT T2 */}
       <Drawer open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DrawerTrigger asChild>
           <Button
@@ -127,13 +154,28 @@ export function HomePageHeaderDataSlots() {
             {isPreferencesError && (
               <div>
                 <p>Não foi possível carregar suas preferências.</p>
-                <Button type="button" variant="outline" onClick={() => refetchPreferences()}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => refetchPreferences()}
+                >
                   Tentar de novo
                 </Button>
               </div>
             )}
             {!isPreferencesPending && !isPreferencesError && preferences && (
-              <AppearanceSettingsPanel preferences={preferences} />
+              <AppearanceSettingsPanel
+                preferences={preferences}
+                onToggleTheme={handleToggleTheme}
+                onToggleSound={handleToggleSound}
+                isUpdatingTheme={isSavingTheme}
+                isUpdatingSound={isSavingSound}
+                updateError={
+                  isUpdateError
+                    ? "Não foi possível salvar suas preferências."
+                    : undefined
+                }
+              />
             )}
           </div>
           <DrawerClose asChild>
@@ -143,7 +185,6 @@ export function HomePageHeaderDataSlots() {
           </DrawerClose>
         </DrawerContent>
       </Drawer>
-
 
       {/* SLOT T1 */}
       <UserProfileCard profile={previewUserProfile} variant="compact" />

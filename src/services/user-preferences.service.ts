@@ -1,7 +1,11 @@
-import { getUserPreferencesData, setUserPreferencesData} from '@/test-utils/user-preferences.dummy';
+import {
+  getUserPreferencesData,
+  setUserPreferencesData,
+} from '@/test-utils/user-preferences.dummy';
 import type { UserPreferences } from '@/types/UserPreferences';
 
 const SIMULATED_LATENCY_MS = 300;
+
 const simulateNetworkDelay = () =>
   new Promise<void>((resolve) => setTimeout(resolve, SIMULATED_LATENCY_MS));
 
@@ -16,6 +20,7 @@ export async function getUserPreferences(): Promise<UserPreferences> {
 
   return preferences;
 }
+
 export async function updateUserPreferences(
   next: UserPreferences,
 ): Promise<UserPreferences> {
